@@ -1,0 +1,37 @@
+name: badminton_score
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  gal: ^2.1.0
+  permission_handler: ^11.3.1
+  share_plus: ^7.2.2
+  path_provider: ^2.1.3
+  shared_preferences: ^2.5.4
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
+  flutter_test:
+    sdk: flutter
+  # 将 flutter_lints 移回开发依赖正确位置
+  flutter_lints: ^6.0.0
+
+# --- 关键：确保下面这一行顶格，前面没有任何空格 ---
+flutter_launcher_icons:
+  android: "launcher_icon"
+  image_path: "assets/images/icon_foreground.png" 
+  adaptive_icon_background: "#F2F2F7" 
+  adaptive_icon_foreground: "assets/images/icon_foreground.png" 
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
