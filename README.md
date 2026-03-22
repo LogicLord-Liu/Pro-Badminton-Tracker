@@ -1,6 +1,19 @@
-## 🏸 Pro Badminton Tracker(PBT)
+<div align="center">
+
+# 🏸 Pro Badminton Tracker (PBT)
+
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/LogicLord-Liu/Pro-Badminton-Tracker?color=orange&logo=github)](https://github.com/LogicLord-Liu/Pro-Badminton-Tracker/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Stars](https://img.shields.io/github/stars/LogicLord-Liu/Pro-Badminton-Tracker?style=social)](https://github.com/LogicLord-Liu/Pro-Badminton-Tracker/stargazers)
 
 **一款专为羽毛球爱好者打造的专业计分与复盘工具。**
+
+[功能特性](#-项目特色) • [安装指南](#-安装与运行) • [技术细节](#️-技术细节) • [参与贡献](#-参与贡献)
+
+</div>
+
+---
 
 Pro Badminton Tracker 旨在提供最流畅、最直观的计分体验。采用 iOS 设计语言，支持丝滑的暗黑模式切换，并具备精准的比赛走势记录与图片导出功能。
 
