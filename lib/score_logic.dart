@@ -29,14 +29,15 @@ class ScoreController extends ChangeNotifier {
 
   bool _intervalProcessedInCurrentSet = false;
   bool _showingIntervalHint = false;
-
   bool _isMatchFinished = false;
-  bool get isMatchFinished => _isMatchFinished;
 
+  bool get isServingLeftA => currentScoreA % 2 != 0;
+  bool get isServingLeftB => currentScoreB % 2 != 0;
+
+  bool get isMatchFinished => _isMatchFinished;
   List<ScoreState> get history => _history;
   bool get canUndo => _history.isNotEmpty;
-
-  int get winThreshold => (matchType / 2).ceil();
+  int get winThreshold => (matchType + 1) ~/ 2;
 
   List<SetGroup> _groupedHistoryCache = [];
   List<SetGroup> get groupedHistory => _groupedHistoryCache;
@@ -73,7 +74,6 @@ class ScoreController extends ChangeNotifier {
     _stopIntervalTimer();
     _remainingSeconds = seconds;
     _showingIntervalHint = true;
-
     _intervalTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
@@ -107,7 +107,6 @@ class ScoreController extends ChangeNotifier {
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(jsonStr);
         _history = decoded.map((e) => ScoreState.fromJson(e)).toList();
-
         if (_history.isNotEmpty) {
           final last = _history.last;
           currentScoreA = last.sA;
@@ -117,11 +116,9 @@ class ScoreController extends ChangeNotifier {
           setsA = last.setScoreA;
           setsB = last.setScoreB;
           isDoubles = last.isDoubles;
-
           _isMatchFinished = (setsA >= winThreshold || setsB >= winThreshold);
           _intervalProcessedInCurrentSet =
               (currentScoreA > 11 || currentScoreB > 11);
-
           _updateGroupedHistory();
           notifyListeners();
         }
@@ -142,13 +139,9 @@ class ScoreController extends ChangeNotifier {
       _groupedHistoryCache = [];
       return;
     }
-
     Map<int, List<ScoreState>> map = {};
-    for (var p in _history) {
-      map.putIfAbsent(p.setNumber, () => []).add(p);
-    }
+    for (var p in _history) map.putIfAbsent(p.setNumber, () => []).add(p);
     if (!map.containsKey(currentSet)) map[currentSet] = [];
-
     _groupedHistoryCache = map.entries
         .map((e) {
           int sA = e.key == currentSet
@@ -173,7 +166,6 @@ class ScoreController extends ChangeNotifier {
   bool get _isSetEnded {
     if (_isMatchFinished) return false;
     if (currentScoreA == 0 && currentScoreB == 0) return false;
-
     return (currentScoreA >= 21 || currentScoreB >= 21) &&
             (currentScoreA - currentScoreB).abs() >= 2 ||
         currentScoreA == 30 ||
@@ -184,32 +176,33 @@ class ScoreController extends ChangeNotifier {
       !_isMatchFinished && !_isSetEnded && !isTimerRunning;
 
   void updateScore(bool isA, int delta) {
-    if (_isMatchFinished) return;
-
-    // 间歇计时期间，禁止加分和减分操作
-    if (isTimerRunning) return;
-
+    if (_isMatchFinished || isTimerRunning) return;
     if (!canModifyScore && delta > 0) return;
 
-    if (_showingIntervalHint && delta > 0) {
-      _showingIntervalHint = false;
-      _intervalProcessedInCurrentSet = true;
-    }
-
     if (delta < 0) {
-      if (isA && currentScoreA <= 0) return;
-      if (!isA && currentScoreB <= 0) return;
-
-      if (isA) {
+      if (!canModifyScore) return;
+      if ((isA && currentScoreA <= 0) || (!isA && currentScoreB <= 0)) return;
+      if (isA)
         currentScoreA += delta;
-      } else {
+      else
         currentScoreB += delta;
-      }
 
-      if (_history.isNotEmpty) {
-        isAServing = _history.last.isAServing;
-      }
+      _history.add(
+        ScoreState(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          sA: currentScoreA,
+          sB: currentScoreB,
+          dA: isA ? delta : 0,
+          dB: !isA ? delta : 0,
+          isAServing: _history.isNotEmpty ? _history.last.isAServing : true,
+          isDoubles: isDoubles,
+          setNumber: currentSet,
+          setScoreA: setsA,
+          setScoreB: setsB,
+        ),
+      );
 
+      if (_history.isNotEmpty) isAServing = _history.last.isAServing;
       if (currentScoreA < 11 && currentScoreB < 11) {
         _intervalProcessedInCurrentSet = false;
         _showingIntervalHint = false;
@@ -220,14 +213,12 @@ class ScoreController extends ChangeNotifier {
         _intervalProcessedInCurrentSet = true;
         _showingIntervalHint = false;
       }
-
       _updateGroupedHistory();
       saveToLocal();
       notifyListeners();
       return;
     }
 
-    // 加分逻辑
     if (isA) {
       currentScoreA += delta;
       isAServing = true;
@@ -236,7 +227,6 @@ class ScoreController extends ChangeNotifier {
       isAServing = false;
     }
 
-    // 检查 11 分间歇 (BWF 规则：60秒)
     if (!_intervalProcessedInCurrentSet &&
         (currentScoreA == 11 || currentScoreB == 11)) {
       HapticFeedback.heavyImpact();
@@ -270,23 +260,15 @@ class ScoreController extends ChangeNotifier {
   }
 
   void _checkSetOver() {
-    int sA = currentScoreA;
-    int sB = currentScoreB;
-    bool setOver = false;
-
-    if (sA == 30 || sB == 30) {
-      setOver = true;
-    } else if ((sA >= 21 || sB >= 21) && (sA - sB).abs() >= 2) {
-      setOver = true;
-    }
-
+    int sA = currentScoreA, sB = currentScoreB;
+    bool setOver =
+        (sA == 30 || sB == 30) ||
+        ((sA >= 21 || sB >= 21) && (sA - sB).abs() >= 2);
     if (setOver) {
-      if (sA > sB) {
+      if (sA > sB)
         setsA++;
-      } else {
+      else
         setsB++;
-      }
-
       if (setsA >= winThreshold || setsB >= winThreshold) {
         _isMatchFinished = true;
       } else {
@@ -296,53 +278,14 @@ class ScoreController extends ChangeNotifier {
         isAServing = sA > sB;
         _intervalProcessedInCurrentSet = false;
         _showingIntervalHint = false;
-        // 局间休息 (BWF 规则：120秒)
         _startIntervalTimer(120);
       }
+      notifyListeners();
     }
-  }
-
-  void undo() {
-    if (_history.isEmpty) return;
-
-    if (isTimerRunning) {
-      _stopIntervalTimer();
-    }
-
-    _history.removeLast();
-
-    if (_history.isEmpty) {
-      resetAll();
-    } else {
-      final last = _history.last;
-      currentScoreA = last.sA;
-      currentScoreB = last.sB;
-      isAServing = last.isAServing;
-      currentSet = last.setNumber;
-      setsA = last.setScoreA;
-      setsB = last.setScoreB;
-      _isMatchFinished = false;
-
-      if (currentScoreA < 11 && currentScoreB < 11) {
-        _intervalProcessedInCurrentSet = false;
-        _showingIntervalHint = false;
-      } else if (currentScoreA == 11 || currentScoreB == 11) {
-        _intervalProcessedInCurrentSet = false;
-        _showingIntervalHint = true;
-      } else {
-        _intervalProcessedInCurrentSet = true;
-        _showingIntervalHint = false;
-      }
-    }
-
-    _updateGroupedHistory();
-    saveToLocal();
-    notifyListeners();
   }
 
   void resetAll() {
     _stopIntervalTimer();
-
     _history = [];
     currentScoreA = 0;
     currentScoreB = 0;
@@ -351,9 +294,10 @@ class ScoreController extends ChangeNotifier {
     currentSet = 1;
     isAServing = true;
     _isMatchFinished = false;
-
+    _intervalProcessedInCurrentSet = false;
+    _showingIntervalHint = false;
+    _remainingSeconds = 0;
     _groupedHistoryCache = [];
-
     saveToLocal();
     notifyListeners();
   }
@@ -365,6 +309,38 @@ class ScoreController extends ChangeNotifier {
     currentScoreB = 0;
     _intervalProcessedInCurrentSet = false;
     _showingIntervalHint = false;
+    _remainingSeconds = 0;
+    saveToLocal();
+    notifyListeners();
+  }
+
+  void undo() {
+    if (_history.isEmpty) return;
+    if (isTimerRunning) _stopIntervalTimer();
+    _history.removeLast();
+    if (_history.isEmpty)
+      resetAll();
+    else {
+      final last = _history.last;
+      currentScoreA = last.sA;
+      currentScoreB = last.sB;
+      isAServing = last.isAServing;
+      currentSet = last.setNumber;
+      setsA = last.setScoreA;
+      setsB = last.setScoreB;
+      _isMatchFinished = false;
+      if (currentScoreA < 11 && currentScoreB < 11) {
+        _intervalProcessedInCurrentSet = false;
+        _showingIntervalHint = false;
+      } else if (currentScoreA == 11 || currentScoreB == 11) {
+        _intervalProcessedInCurrentSet = false;
+        _showingIntervalHint = true;
+      } else {
+        _intervalProcessedInCurrentSet = true;
+        _showingIntervalHint = false;
+      }
+    }
+    _updateGroupedHistory();
     saveToLocal();
     notifyListeners();
   }
@@ -399,7 +375,6 @@ class ScoreController extends ChangeNotifier {
     _stopIntervalTimer();
     _history = _history.sublist(0, index + 1);
     final target = _history.last;
-
     currentScoreA = target.sA;
     currentScoreB = target.sB;
     isAServing = target.isAServing;
@@ -407,7 +382,6 @@ class ScoreController extends ChangeNotifier {
     setsA = target.setScoreA;
     setsB = target.setScoreB;
     _isMatchFinished = false;
-
     if (currentScoreA < 11 && currentScoreB < 11) {
       _intervalProcessedInCurrentSet = false;
       _showingIntervalHint = false;
@@ -418,7 +392,6 @@ class ScoreController extends ChangeNotifier {
       _intervalProcessedInCurrentSet = true;
       _showingIntervalHint = false;
     }
-
     _updateGroupedHistory();
     saveToLocal();
     notifyListeners();
@@ -446,29 +419,23 @@ class ScoreController extends ChangeNotifier {
   void deleteHistoryPoint(String id) {
     int index = _history.indexWhere((h) => h.id == id);
     if (index == -1) return;
-
     final removedPoint = _history.removeAt(index);
     final removedSetNumber = removedPoint.setNumber;
-
     if (removedSetNumber == currentSet) {
-      int currentSetTotalA = 0;
-      int currentSetTotalB = 0;
+      int currentSetTotalA = 0, currentSetTotalB = 0;
       for (var point in _history) {
         if (point.setNumber == currentSet) {
           currentSetTotalA += point.dA;
           currentSetTotalB += point.dB;
         }
       }
-
       currentScoreA = currentSetTotalA;
       currentScoreB = currentSetTotalB;
-
       if (_history.isNotEmpty && _history.last.setNumber == currentSet) {
         isAServing = _history.last.isAServing;
       } else {
         isAServing = removedPoint.setScoreA > removedPoint.setScoreB;
       }
-
       if (currentScoreA < 11 && currentScoreB < 11) {
         _intervalProcessedInCurrentSet = false;
         _showingIntervalHint = false;
@@ -480,18 +447,14 @@ class ScoreController extends ChangeNotifier {
         _showingIntervalHint = false;
       }
     }
-
     _isMatchFinished = false;
-
     _updateGroupedHistory();
     saveToLocal();
     notifyListeners();
   }
 
   void skipInterval() {
-    if (isInterval) {
-      stopIntervalManually();
-    }
+    if (isInterval) stopIntervalManually();
   }
 
   @override
