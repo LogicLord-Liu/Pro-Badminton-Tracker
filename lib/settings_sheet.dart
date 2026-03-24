@@ -131,7 +131,7 @@ void showSettingsSheet(
                 icon: Icons.info_outline_rounded,
                 title: "Version",
                 trailing: Text(
-                  "1.0.0",
+                  "1.0.1",
                   style: TextStyle(color: theme.subTextColor, fontSize: 14),
                 ),
               ),
