@@ -54,3 +54,5 @@ key.properties
 android/local.properties
 ios/Runner/GoogleService-Info.plist
 android/app/google-services.json
+
+/releases/
