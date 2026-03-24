@@ -140,7 +140,9 @@ class ScoreController extends ChangeNotifier {
       return;
     }
     Map<int, List<ScoreState>> map = {};
-    for (var p in _history) map.putIfAbsent(p.setNumber, () => []).add(p);
+    for (var p in _history) {
+      map.putIfAbsent(p.setNumber, () => []).add(p);
+    }
     if (!map.containsKey(currentSet)) map[currentSet] = [];
     _groupedHistoryCache = map.entries
         .map((e) {
@@ -182,10 +184,11 @@ class ScoreController extends ChangeNotifier {
     if (delta < 0) {
       if (!canModifyScore) return;
       if ((isA && currentScoreA <= 0) || (!isA && currentScoreB <= 0)) return;
-      if (isA)
+      if (isA) {
         currentScoreA += delta;
-      else
+      } else {
         currentScoreB += delta;
+      }
 
       _history.add(
         ScoreState(
@@ -265,10 +268,11 @@ class ScoreController extends ChangeNotifier {
         (sA == 30 || sB == 30) ||
         ((sA >= 21 || sB >= 21) && (sA - sB).abs() >= 2);
     if (setOver) {
-      if (sA > sB)
+      if (sA > sB) {
         setsA++;
-      else
+      } else {
         setsB++;
+      }
       if (setsA >= winThreshold || setsB >= winThreshold) {
         _isMatchFinished = true;
       } else {
@@ -318,9 +322,9 @@ class ScoreController extends ChangeNotifier {
     if (_history.isEmpty) return;
     if (isTimerRunning) _stopIntervalTimer();
     _history.removeLast();
-    if (_history.isEmpty)
+    if (_history.isEmpty) {
       resetAll();
-    else {
+    } else {
       final last = _history.last;
       currentScoreA = last.sA;
       currentScoreB = last.sB;

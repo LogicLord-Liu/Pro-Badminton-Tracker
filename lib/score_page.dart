@@ -92,8 +92,9 @@ class _ScorePageState extends State<ScorePage> {
       ByteData? byteData = await image.toByteData(
         format: ui.ImageByteFormat.png,
       );
-      if (byteData != null && mounted)
+      if (byteData != null && mounted) {
         _exportBytesNotifier.value = byteData.buffer.asUint8List();
+      }
     } catch (e) {
       if (mounted) Navigator.pop(context);
     }
